@@ -160,13 +160,43 @@ public:
 	unsigned int height;
 	int SPP;
 	ImageFilter* filter;
-	void splat(const float x, const float y, const Colour& L)
-	{
-		// Code to splat a smaple with colour L into the image plane using an ImageFilter
+	float pre_calculated_full_filter_weight = 0;
+	void splat(const float x, const float y, const Colour& L) {
+		float full_weight = pre_calculated_full_filter_weight;
+		int size = filter->size();
+		int px = static_cast<int>(x);
+		int py = static_cast<int>(y);
+		bool is_on_edge = px < size || px + size >= width || py < size || py + size >= height;
+		if (is_on_edge) {
+			full_weight = calculateFilterWeight(px, py);
+		}
+		for (int i = -size; i <= size; i++) {
+			for (int j = -size; j <= size; j++) {
+				if (px + i >= 0 && px + i < width && py + j >= 0 && py + j < height) {
+					int index = (py + j) * width + px + i;
+					film[index] = film[index] + L * filter->filter(i + x - px - 0.5f, j + y - py - 0.5f);
+				}
+			}
+		}
 	}
-	void tonemap(int x, int y, unsigned char& r, unsigned char& g, unsigned char& b, float exposure = 1.0f)
-	{
-		// Return a tonemapped pixel at coordinates x, y
+	void tonemap(int x, int y, unsigned char& r, unsigned char& g, unsigned char& b, float exposure = 1.0f) {
+		int index = width * y + x;
+		Colour pixel_colour = film[index];
+		r = std::max(std::min(powf(pixel_colour.r * powf(2.0, exposure), 2.2), 1.0f), 0.0f) * 255;
+		g = std::max(std::min(powf(pixel_colour.g * powf(2.0, exposure), 2.2), 1.0f), 0.0f) * 255;
+		b = std::max(std::min(powf(pixel_colour.b * powf(2.0, exposure), 2.2), 1.0f), 0.0f) * 255;
+	}
+	float calculateFilterWeight(int x, int y) {
+		float weight = 0.0f;
+		int size = filter->size();
+		for (int i = -size; i <= size; i++) {
+			for (int j = -size; j <= size; j++) {
+				if (x + i >= 0 && x + i < width && y + j >= 0 && y + j < height) {
+					weight += filter->filter(i, j);
+				}
+			}
+		}
+		return weight;
 	}
 	// Do not change any code below this line
 	void init(int _width, int _height, ImageFilter* _filter)
@@ -176,6 +206,7 @@ public:
 		film = new Colour[width * height];
 		clear();
 		filter = _filter;
+		pre_calculated_full_filter_weight = calculateFilterWeight(filter->size(), filter->size());
 	}
 	void clear()
 	{

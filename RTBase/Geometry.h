@@ -170,7 +170,6 @@ public:
 		centre = _centre;
 		radius = _radius;
 	}
-	// TODO
 	bool rayIntersect(Ray& r, float& t)
 	{
 		float c = (r.o - centre).lengthSq() - radius * radius;

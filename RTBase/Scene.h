@@ -39,7 +39,6 @@ public:
 		viewDirection = camera.mulVec(viewDirection);
 		viewDirection = viewDirection.normalize();
 	}
-	// Add code here
 	Ray generateRay(float x, float y)
 	{
 		float x_c = 2 * x / (width - 1) - 1;
