@@ -2,6 +2,8 @@
 
 #include "Core.h"
 #include "Sampling.h"
+#include <span>
+#include <ranges>
 
 class Ray
 {
@@ -137,6 +139,11 @@ public:
 		max = Max(max, p);
 		min = Min(min, p);
 	}
+	void extend(const Triangle t) {
+		extend(t.vertices[0].p);
+		extend(t.vertices[1].p);
+		extend(t.vertices[2].p);
+	}
 	bool rayAABB(const Ray& r, float& t)
 	{
 		Vec3 t_min = (min - r.o) * r.invDir;
@@ -158,6 +165,18 @@ public:
 		Vec3 size = max - min;
 		return ((size.x * size.y) + (size.y * size.z) + (size.x * size.z)) * 2.0f;
 	}
+	bool inBounds(const Vec3& vector) const {
+		return vector.x < max.x && vector.y < max.y && vector.z < max.z
+			&& vector.x > min.x && vector.y > min.y && vector.z > min.z;
+	}
+	//bool inBounds(const Triangle& t) {  // Even partially
+	//	AABB bounds{};
+	//	bounds.extend(t);
+	//	if () {
+	//		return false;
+	//	}
+	//	return true;
+	//}
 };
 
 class Sphere
@@ -209,25 +228,95 @@ class BVHNode
 {
 public:
 	AABB bounds;
-	BVHNode* r;
-	BVHNode* l;
+	std::unique_ptr<BVHNode> l;
+	std::unique_ptr<BVHNode> r;
 	// This can store an offset and number of triangles in a global triangle list for example
 	// But you can store this however you want!
-	// unsigned int offset;
-	// unsigned char num;
+	int start_index = -1;
+	int triangles_number = 0;
 	BVHNode()
 	{
-		r = NULL;
-		l = NULL;
+		l = nullptr;
+		r = nullptr;
 	}
 	// Note there are several options for how to implement the build method. Update this as required
-	void build(std::vector<Triangle>& inputTriangles)
+	void build(std::span<Triangle>& inputTriangles, int original_offset = 0)
 	{
-		// Add BVH building code here
+		for (const Triangle& triangle : inputTriangles) {
+			bounds.extend(triangle);
+		}
+
+		if (inputTriangles.size() <= MAXNODE_TRIANGLES) {
+			start_index = original_offset; 
+			triangles_number = static_cast<int>(inputTriangles.size());
+			return;
+		}
+
+		Vec3 side_lengths = bounds.max - bounds.min;
+		AABB left = bounds;
+		AABB right = bounds;
+		int axis = 0;
+		if (side_lengths.x > side_lengths.y && side_lengths.x > side_lengths.z) {
+			float new_x = bounds.max.x - side_lengths.x / 2;
+			left.max.x = new_x;
+			right.min.x = new_x;
+			axis = 0;
+		} else if (side_lengths.y > side_lengths.z) {
+			float new_y = bounds.max.y - side_lengths.y / 2;
+			left.max.y = new_y;
+			right.min.y = new_y;
+			axis = 1;
+		} else {
+			float new_z = bounds.max.z - side_lengths.z / 2;
+			left.max.z = new_z;
+			right.min.z = new_z;
+			axis = 2;
+		}
+		std::sort(inputTriangles.begin(), inputTriangles.end(), [axis](const Triangle& t, const Triangle& t2) { return t.centre().coords[axis] < t2.centre().coords[axis]; });
+		int half = inputTriangles.size() / 2;
+		std::span<Triangle> first_half = inputTriangles.subspan(0, half);
+		std::span<Triangle> second_half = inputTriangles.subspan(half, inputTriangles.size() - half);
+
+		//std::span<Triangle> second_half = std::ranges::partition(inputTriangles, [left](Triangle triangle) { return left.inBounds(triangle.centre()); });
+		//int new_offset = inputTriangles.size() - second_half.size();
+		//if (new_offset == inputTriangles.size() || new_offset == 0) {
+		//	start_index = original_offset;
+		//	triangles_number = static_cast<int>(inputTriangles.size());
+		//	return;
+		//}
+		l = std::make_unique<BVHNode>();
+		r = std::make_unique<BVHNode>();
+		//std::span<Triangle> first_half = inputTriangles.subspan(0, new_offset);
+		l->build(first_half, original_offset);
+		r->build(second_half, original_offset + half);
 	}
 	void traverse(const Ray& ray, const std::vector<Triangle>& triangles, IntersectionData& intersection)
 	{
-		// Add BVH Traversal code here
+		if (bounds.rayAABB(ray)) {
+			if (triangles_number > 0) {
+				for (int i = start_index; i < start_index + triangles_number; i++) {
+					float t;
+					float u;
+					float v;
+					if (triangles[i].rayIntersect(ray, t, u, v)) {
+						if (t < intersection.t) {
+							intersection.t = t;
+							intersection.ID = i;
+							intersection.alpha = u;
+							intersection.beta = v;
+							intersection.gamma = 1.0f - (u + v);
+						}
+					}
+				}
+			} else {
+				if (l != nullptr) {
+					l->traverse(ray, triangles, intersection);
+				}
+				if (r != nullptr) {
+					r->traverse(ray, triangles, intersection);
+				}
+			}
+		}
 	}
 	IntersectionData traverse(const Ray& ray, const std::vector<Triangle>& triangles)
 	{

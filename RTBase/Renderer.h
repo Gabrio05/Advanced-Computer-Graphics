@@ -84,9 +84,9 @@ public:
 	void render()
 	{
 		film->incrementSPP();
-		for (unsigned int y = 0; y < film->height; y++)
+		for (int y = 0; y < film->height; y++)
 		{
-			for (unsigned int x = 0; x < film->width; x++)
+			for (int x = 0; x < film->width; x++)
 			{
 				float px = x + 0.5f;
 				float py = y + 0.5f;
@@ -94,6 +94,10 @@ public:
 				Colour col = viewNormals(ray);
 				//Colour col = albedo(ray);
 				film->splat(px, py, col);
+			}
+		}
+		for (int y = 0; y < film->height; y++) {
+			for (int x = 0; x < film->width; x++) {
 				unsigned char r;
 				unsigned char g;
 				unsigned char b;
@@ -101,6 +105,7 @@ public:
 				canvas->draw(x, y, r, g, b);
 			}
 		}
+		film->clear();
 	}
 	int getSPP()
 	{

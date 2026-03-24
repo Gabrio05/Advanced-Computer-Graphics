@@ -73,12 +73,14 @@ public:
 	std::vector<BSDF*> materials;
 	std::vector<Light*> lights;
 	Light* background = NULL;
-	BVHNode* bvh = NULL;
+	std::unique_ptr<BVHNode> bvh = nullptr;
 	Camera camera;
 	AABB bounds;
 	void build()
 	{
-		// Add BVH building code here
+		bvh = std::make_unique<BVHNode>();
+		std::span<Triangle> span(triangles);
+		bvh->build(span);
 		
 		// Do not touch the code below this line!
 		// Build light list
@@ -93,7 +95,10 @@ public:
 			}
 		}
 	}
-	IntersectionData traverse(const Ray& ray)
+	IntersectionData traverse(const Ray& ray) {
+		return bvh->traverse(ray, triangles);
+	}
+	IntersectionData Mtraverse(const Ray& ray)
 	{
 		IntersectionData intersection;
 		intersection.t = FLT_MAX;

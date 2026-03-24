@@ -138,7 +138,7 @@ public:
 class BoxFilter : public ImageFilter
 {
 public:
-	float filter(float x, float y) const
+	float filter(const float x, const float y) const
 	{
 		if (fabsf(x) < 0.5f && fabs(y) < 0.5f)
 		{
@@ -155,11 +155,11 @@ public:
 class Film
 {
 public:
-	Colour* film;
-	unsigned int width;
-	unsigned int height;
-	int SPP;
-	ImageFilter* filter;
+	Colour* film = nullptr;
+	int width = 0;
+	int height = 0;
+	int SPP = 0;
+	ImageFilter* filter = nullptr;
 	float pre_calculated_full_filter_weight = 0;
 	void splat(const float x, const float y, const Colour& L) {
 		float full_weight = pre_calculated_full_filter_weight;
@@ -172,7 +172,7 @@ public:
 		}
 		for (int i = -size; i <= size; i++) {
 			for (int j = -size; j <= size; j++) {
-				if (px + i >= 0 && px + i < width && py + j >= 0 && py + j < height) {
+				if (!is_on_edge || px + i >= 0 && px + i < width && py + j >= 0 && py + j < height) {
 					int index = (py + j) * width + px + i;
 					film[index] = film[index] + L * filter->filter(i + x - px - 0.5f, j + y - py - 0.5f);
 				}
@@ -220,7 +220,7 @@ public:
 	void save(std::string filename)
 	{
 		Colour* hdrpixels = new Colour[width * height];
-		for (unsigned int i = 0; i < (width * height); i++)
+		for (int i = 0; i < (width * height); i++)
 		{
 			hdrpixels[i] = film[i] / (float)SPP;
 		}
