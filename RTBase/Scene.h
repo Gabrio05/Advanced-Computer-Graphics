@@ -123,7 +123,19 @@ public:
 	}
 	Light* sampleLight(Sampler* sampler, float& pmf)
 	{
-		return NULL;
+		float total_power = 0.0f;
+		for (Light* light : lights) {
+			total_power += light->totalIntegratedPower();
+		}
+		float r = sampler->next();
+		for (Light* light : lights) {
+			r -= light->totalIntegratedPower() / total_power;
+			if (r < 0) {
+				pmf = light->totalIntegratedPower() / total_power;
+				return light;
+			}
+		}
+		return nullptr;
 	}
 	// Do not modify any code below this line
 	void init(std::vector<Triangle> meshTriangles, std::vector<BSDF*> meshMaterials, Light* _background)

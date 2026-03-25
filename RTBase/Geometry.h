@@ -112,7 +112,12 @@ public:
 	}
 	Vec3 sample(Sampler* sampler, float& pdf)
 	{
-		return Vec3(0, 0, 0);
+		pdf = 1 / area;
+		float r1 = sampler->next();
+		float r2 = sampler->next();
+		float alpha = 1 - sqrtf(r1);
+		float beta = r2 * sqrtf(r1);
+		return vertices[0].p * alpha + vertices[1].p * beta + vertices[2].p * (1 - beta - alpha);
 	}
 	Vec3 gNormal()
 	{
@@ -327,7 +332,6 @@ public:
 	}
 	bool traverseVisible(const Ray& ray, const std::vector<Triangle>& triangles, const float maxT)
 	{
-		// Add visibility code here
-		return true;
+		return traverse(ray, triangles).t > maxT;
 	}
 };

@@ -39,12 +39,22 @@ public:
 	}
 	Colour computeDirect(ShadingData shadingData, Sampler* sampler)
 	{
-		// Is surface is specular we cannot computing direct lighting
-		if (shadingData.bsdf->isPureSpecular() == true)
-		{
+		if (shadingData.bsdf->isPureSpecular() == true) {
 			return Colour(0.0f, 0.0f, 0.0f);
 		}
-		// Compute direct lighting here
+		float pmf;
+		Light* light = scene->sampleLight(sampler, pmf);
+		if (light->isArea()) {
+			float pdf;
+			Colour colour;
+			Vec3 light_point = light->sample(shadingData, sampler, colour, pdf);
+			Vec3 direction = (light_point - shadingData.x).normalize();
+			float geo = std::max(Dot(direction, shadingData.sNormal), 0.0f) * std::max(Dot(-direction, light->normal(shadingData, direction)), 0.0f) / ((light_point - shadingData.x) * (light_point - shadingData.x)).length();
+			if (geo > 0 && scene->visible(shadingData.x, light_point)) {
+				Colour colour2 = shadingData.bsdf->evaluate(shadingData, direction);
+				return Colour(geo, geo, geo) * colour * colour2 / (pmf * pdf);
+			}
+		}
 		return Colour(0.0f, 0.0f, 0.0f);
 	}
 	Colour pathTrace(Ray& r, Colour& pathThroughput, int depth, Sampler* sampler)
@@ -54,8 +64,15 @@ public:
 	}
 	Colour direct(Ray& r, Sampler* sampler)
 	{
-		// Compute direct lighting for an image sampler here
-		return Colour(0.0f, 0.0f, 0.0f);
+		IntersectionData intersection = scene->traverse(r);
+		ShadingData shadingData = scene->calculateShadingData(intersection, r);
+		if (shadingData.t < FLT_MAX) {
+			if (shadingData.bsdf->isLight()) {
+				return shadingData.bsdf->emit(shadingData, shadingData.wo);
+			}
+			return computeDirect(shadingData, sampler);
+		}
+		return scene->background->evaluate(r.dir);
 	}
 	Colour albedo(Ray& r)
 	{
@@ -83,17 +100,18 @@ public:
 	}
 	void render()
 	{
-		film->incrementSPP();
-		for (int y = 0; y < film->height; y++)
-		{
-			for (int x = 0; x < film->width; x++)
-			{
-				float px = x + 0.5f;
-				float py = y + 0.5f;
-				Ray ray = scene->camera.generateRay(px, py);
-				Colour col = viewNormals(ray);
-				//Colour col = albedo(ray);
-				film->splat(px, py, col);
+		for (int x = 0; x < 1; x++) {
+			film->incrementSPP();
+			for (int y = 0; y < film->height; y++) {
+				for (int x = 0; x < film->width; x++) {
+					float px = x + 0.5f;
+					float py = y + 0.5f;
+					Ray ray = scene->camera.generateRay(px, py);
+					//Colour col = viewNormals(ray);
+					//Colour col = albedo(ray);
+					Colour col = direct(ray, samplers);
+					film->splat(px, py, col);
+				}
 			}
 		}
 		for (int y = 0; y < film->height; y++) {
