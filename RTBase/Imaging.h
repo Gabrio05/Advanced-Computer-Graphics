@@ -152,6 +152,18 @@ public:
 	}
 };
 
+class GaussianFilter : public ImageFilter {
+	float radius = 1.0f;
+	float filter(const float x, const float y) const {
+		float dist_squared = x * x + y * y;
+		float a = 0.5f;
+		return pow(M_E, -a * dist_squared); // -pow(M_E, -a * radius);
+	}
+	int size() const {
+		return 4;
+	}
+};
+
 class Film
 {
 public:
@@ -182,9 +194,9 @@ public:
 	void tonemap(int x, int y, unsigned char& r, unsigned char& g, unsigned char& b, float exposure = 1.0f) {
 		int index = width * y + x;
 		Colour pixel_colour = film[index];
-		r = std::max(std::min(powf(pixel_colour.r / SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
-		g = std::max(std::min(powf(pixel_colour.g / SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
-		b = std::max(std::min(powf(pixel_colour.b / SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
+		r = std::max(std::min(powf(pixel_colour.r / (float)SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
+		g = std::max(std::min(powf(pixel_colour.g / (float)SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
+		b = std::max(std::min(powf(pixel_colour.b / (float)SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
 	}
 	float calculateFilterWeight(int x, int y) {
 		float weight = 0.0f;

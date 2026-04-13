@@ -25,7 +25,7 @@ public:
 		scene = _scene;
 		canvas = _canvas;
 		film = new Film();
-		film->init((unsigned int)scene->camera.width, (unsigned int)scene->camera.height, new BoxFilter());
+		film->init((unsigned int)scene->camera.width, (unsigned int)scene->camera.height, new GaussianFilter());
 		SYSTEM_INFO sysInfo;
 		GetSystemInfo(&sysInfo);
 		numProcs = sysInfo.dwNumberOfProcessors;
@@ -59,8 +59,34 @@ public:
 	}
 	Colour pathTrace(Ray& r, Colour& pathThroughput, int depth, Sampler* sampler)
 	{
-		// Add pathtracer code here
-		return Colour(0.0f, 0.0f, 0.0f);
+		// Direct
+		IntersectionData intersection = scene->traverse(r);
+		ShadingData shadingData = scene->calculateShadingData(intersection, r);
+		Colour directLight = Colour(0, 0, 0);
+		if (shadingData.t < FLT_MAX) {
+			if (shadingData.bsdf->isLight()) {
+				if (depth == 0 || shadingData.bsdf->isPureSpecular()) {
+					return directLight = shadingData.bsdf->emit(shadingData, shadingData.wo) * pathThroughput;
+				}
+				return Colour(0, 0, 0);
+			}
+			directLight = computeDirect(shadingData, sampler);
+		} else {
+			return scene->background->evaluate(r.dir) * pathThroughput;
+		}
+		directLight = directLight * pathThroughput;
+		// Indirect
+		float epsilon = 0.0001f;
+		float c = 0.0f;
+		Ray next = Ray(r.at(intersection.t) + shadingData.gNormal * epsilon, shadingData.frame.toWorld(SamplingDistributions::uniformSampleHemisphere(sampler->next(), sampler->next())));
+		float the_cos = cosf(Dot(shadingData.gNormal, -r.dir));
+		pathThroughput = pathThroughput * shadingData.bsdf->evaluate(shadingData, r.dir) * the_cos / SamplingDistributions::uniformHemispherePDF(next.dir);
+		float rrp = std::min(pathThroughput.Lum(), 0.9f);
+		if (sampler->next() > rrp) {
+			return directLight + Colour(c, c, c) * pathThroughput;
+		}
+		float qc = (1 - pathThroughput.Lum()) * c;
+		return directLight + (pathTrace(next, pathThroughput, depth + 1, sampler) - Colour(qc, qc, qc)) / (rrp);
 	}
 	Colour direct(Ray& r, Sampler* sampler)
 	{
@@ -100,20 +126,50 @@ public:
 	}
 	void render()
 	{
-		for (int x = 0; x < 1; x++) {
+		//film->SPP = 16;
+		//for (int y = 0; y < film->height; y++) {
+		//	for (int x = 0; x < film->width; x++) {
+		//		for (int i = 0; i < getSPP(); i++) {
+		//			float px = x + 0.5f;
+		//			float py = y + 0.5f;
+		//			Ray ray = scene->camera.generateRay(px, py);
+		//			//Colour col = viewNormals(ray);
+		//			//Colour col = albedo(ray);
+		//			//Colour col = direct(ray, samplers);
+		//			Colour throughput = Colour(1.0f, 1.0f, 1.0f);
+		//			Colour col = pathTrace(ray, throughput, 0, samplers);
+		//			film->splat(px, py, col);
+		//		}
+		//	}
+		//}
+		for (int i = 0; i < 512; i++) {
 			film->incrementSPP();
 			for (int y = 0; y < film->height; y++) {
 				for (int x = 0; x < film->width; x++) {
-					float px = x + 0.5f;
-					float py = y + 0.5f;
+					float px = x + samplers->next();
+					float py = y + samplers->next();
 					Ray ray = scene->camera.generateRay(px, py);
 					//Colour col = viewNormals(ray);
 					//Colour col = albedo(ray);
-					Colour col = direct(ray, samplers);
+					//Colour col = direct(ray, samplers);
+					Colour throughput = Colour(1.0f, 1.0f, 1.0f);
+					Colour col = pathTrace(ray, throughput, 0, samplers);
 					film->splat(px, py, col);
 				}
 			}
+			canvas->clear();
+			for (int y = 0; y < film->height; y++) {
+				for (int x = 0; x < film->width; x++) {
+					unsigned char r;
+					unsigned char g;
+					unsigned char b;
+					film->tonemap(x, y, r, g, b);
+					canvas->draw(x, y, r, g, b);
+				}
+			}
+			canvas->present();
 		}
+		
 		for (int y = 0; y < film->height; y++) {
 			for (int x = 0; x < film->width; x++) {
 				unsigned char r;
