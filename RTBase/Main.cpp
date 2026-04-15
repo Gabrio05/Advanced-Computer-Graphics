@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
 	// Initialize default parameters
 	//std::string sceneName = "../MoreScenes/kitchen";
 	std::string sceneName = "../cornell-box";
+	//std::string sceneName = "../MoreScenes/bathroom";
 	std::string filename = "GI.hdr";
 	int SPP = 8192;
 

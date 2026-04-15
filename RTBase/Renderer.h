@@ -25,7 +25,7 @@ public:
 		scene = _scene;
 		canvas = _canvas;
 		film = new Film();
-		film->init((unsigned int)scene->camera.width, (unsigned int)scene->camera.height, new GaussianFilter());
+		film->init((unsigned int)scene->camera.width, (unsigned int)scene->camera.height, new BoxFilter());
 		SYSTEM_INFO sysInfo;
 		GetSystemInfo(&sysInfo);
 		numProcs = sysInfo.dwNumberOfProcessors;
@@ -39,7 +39,7 @@ public:
 	}
 	Colour computeDirect(ShadingData shadingData, Sampler* sampler)
 	{
-		if (shadingData.bsdf->isPureSpecular() == true) {
+		if (shadingData.bsdf->isPureSpecular()) {
 			return Colour(0.0f, 0.0f, 0.0f);
 		}
 		float pmf;
@@ -78,9 +78,12 @@ public:
 		// Indirect
 		float epsilon = 0.0001f;
 		float c = 0.0f;
-		Ray next = Ray(r.at(intersection.t) + shadingData.gNormal * epsilon, shadingData.frame.toWorld(SamplingDistributions::uniformSampleHemisphere(sampler->next(), sampler->next())));
+		Colour reflectedColour{};
+		float pdf = 0;
+		Vec3 next_vector = shadingData.bsdf->sample(shadingData, sampler, reflectedColour, pdf);
+		Ray next = Ray(r.at(intersection.t) + shadingData.gNormal * epsilon, next_vector);
 		float the_cos = cosf(Dot(shadingData.gNormal, -r.dir));
-		pathThroughput = pathThroughput * shadingData.bsdf->evaluate(shadingData, r.dir) * the_cos / SamplingDistributions::uniformHemispherePDF(next.dir);
+		pathThroughput = pathThroughput * reflectedColour * the_cos / pdf;
 		float rrp = std::min(pathThroughput.Lum(), 0.9f);
 		if (sampler->next() > rrp) {
 			return directLight + Colour(c, c, c) * pathThroughput;
