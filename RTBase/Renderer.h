@@ -127,51 +127,80 @@ public:
 		}
 		return Colour(0.0f, 0.0f, 0.0f);
 	}
+	void renderPixel(int x, int y) {
+		float px = x + samplers->next();
+		float py = y + samplers->next();
+		Ray ray = scene->camera.generateRay(px, py);
+		//Colour col = viewNormals(ray);
+		//Colour col = albedo(ray);
+		//Colour col = direct(ray, samplers);
+		Colour throughput = Colour(1.0f, 1.0f, 1.0f);
+		Colour col = pathTrace(ray, throughput, 0, samplers);
+		film->splat(px, py, col);
+	}
+	void renderTile(int tile_size_horizontal, int tile_size_vertical, std::atomic<int>& tile_index) {
+		int horizontal_tiles = film->width / tile_size_horizontal + (film->width % tile_size_horizontal != 0);
+		int vertical_tiles = film->height / tile_size_vertical + (film->height % tile_size_vertical != 0);
+		int current_index = tile_index++;
+		int spp = getSPP();
+		while (current_index < horizontal_tiles * vertical_tiles) {
+			int tile_height = current_index / horizontal_tiles;
+			int tile_width = current_index % horizontal_tiles;
+			for (int y = tile_height * tile_size_vertical; y < (tile_height + 1) * tile_size_vertical && y < film->height; y++) {
+				for (int x = tile_width * tile_size_horizontal; x < (tile_width + 1) * tile_size_horizontal && x < film->width; x++) {
+					for (int i = 0; i < spp; i++) {
+						renderPixel(x, y);
+					}
+				}
+			}
+			current_index = tile_index++;
+		}
+	}
 	void render()
 	{
-		//film->SPP = 16;
+		film->SPP = 4;
+		// Multi Threaded
+		int thread_number = 11;
+		int tile_size_horizontal = 20;  // Number of pixels per tile side
+		int tile_size_vertical = 20;
+		std::atomic<int> tile_index = 0;
+		std::vector<std::thread> threads{};
+		threads.reserve(thread_number);
+		for (int t = 0; t < thread_number; t++) {
+			threads.emplace_back(&RayTracer::renderTile, this, tile_size_horizontal, tile_size_vertical, std::ref(tile_index));
+		}
+		for (int t = 0; t < thread_number; t++) {
+			threads[t].join();
+		}
+
+		// Single Threaded
 		//for (int y = 0; y < film->height; y++) {
 		//	for (int x = 0; x < film->width; x++) {
 		//		for (int i = 0; i < getSPP(); i++) {
-		//			float px = x + 0.5f;
-		//			float py = y + 0.5f;
-		//			Ray ray = scene->camera.generateRay(px, py);
-		//			//Colour col = viewNormals(ray);
-		//			//Colour col = albedo(ray);
-		//			//Colour col = direct(ray, samplers);
-		//			Colour throughput = Colour(1.0f, 1.0f, 1.0f);
-		//			Colour col = pathTrace(ray, throughput, 0, samplers);
-		//			film->splat(px, py, col);
+		//			renderPixel(x, y);
 		//		}
 		//	}
 		//}
-		for (int i = 0; i < 512; i++) {
-			film->incrementSPP();
-			for (int y = 0; y < film->height; y++) {
-				for (int x = 0; x < film->width; x++) {
-					float px = x + samplers->next();
-					float py = y + samplers->next();
-					Ray ray = scene->camera.generateRay(px, py);
-					//Colour col = viewNormals(ray);
-					//Colour col = albedo(ray);
-					//Colour col = direct(ray, samplers);
-					Colour throughput = Colour(1.0f, 1.0f, 1.0f);
-					Colour col = pathTrace(ray, throughput, 0, samplers);
-					film->splat(px, py, col);
-				}
-			}
-			canvas->clear();
-			for (int y = 0; y < film->height; y++) {
-				for (int x = 0; x < film->width; x++) {
-					unsigned char r;
-					unsigned char g;
-					unsigned char b;
-					film->tonemap(x, y, r, g, b);
-					canvas->draw(x, y, r, g, b);
-				}
-			}
-			canvas->present();
-		}
+		// Continuous Rendering Single Threaded
+		//for (int i = 0; i < 512; i++) {
+		//	film->incrementSPP();
+		//	for (int y = 0; y < film->height; y++) {
+		//		for (int x = 0; x < film->width; x++) {
+		//			renderPixel(x, y);
+		//		}
+		//	}
+		//	canvas->clear();
+		//	for (int y = 0; y < film->height; y++) {
+		//		for (int x = 0; x < film->width; x++) {
+		//			unsigned char r;
+		//			unsigned char g;
+		//			unsigned char b;
+		//			film->tonemap(x, y, r, g, b);
+		//			canvas->draw(x, y, r, g, b);
+		//		}
+		//	}
+		//	canvas->present();
+		//}
 		
 		for (int y = 0; y < film->height; y++) {
 			for (int x = 0; x < film->width; x++) {
