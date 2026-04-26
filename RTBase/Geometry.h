@@ -282,16 +282,8 @@ public:
 		std::span<Triangle> first_half = inputTriangles.subspan(0, half);
 		std::span<Triangle> second_half = inputTriangles.subspan(half, inputTriangles.size() - half);
 
-		//std::span<Triangle> second_half = std::ranges::partition(inputTriangles, [left](Triangle triangle) { return left.inBounds(triangle.centre()); });
-		//int new_offset = inputTriangles.size() - second_half.size();
-		//if (new_offset == inputTriangles.size() || new_offset == 0) {
-		//	start_index = original_offset;
-		//	triangles_number = static_cast<int>(inputTriangles.size());
-		//	return;
-		//}
 		l = std::make_unique<BVHNode>();
 		r = std::make_unique<BVHNode>();
-		//std::span<Triangle> first_half = inputTriangles.subspan(0, new_offset);
 		l->build(first_half, original_offset);
 		r->build(second_half, original_offset + half);
 	}

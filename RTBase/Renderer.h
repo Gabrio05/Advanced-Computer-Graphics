@@ -18,7 +18,6 @@ public:
 	GamesEngineeringBase::Window* canvas;
 	Film* film;
 	MTRandom *samplers;
-	std::thread **threads;
 	int numProcs;
 	void init(Scene* _scene, GamesEngineeringBase::Window* _canvas)
 	{
@@ -29,7 +28,6 @@ public:
 		SYSTEM_INFO sysInfo;
 		GetSystemInfo(&sysInfo);
 		numProcs = sysInfo.dwNumberOfProcessors;
-		threads = new std::thread*[numProcs];
 		samplers = new MTRandom[numProcs];
 		clear();
 	}
@@ -127,18 +125,18 @@ public:
 		}
 		return Colour(0.0f, 0.0f, 0.0f);
 	}
-	void renderPixel(int x, int y) {
-		float px = x + samplers->next();
-		float py = y + samplers->next();
+	void renderPixel(const int x, const int y, const int thread_number = 0) {
+		float px = x + samplers[thread_number].next();
+		float py = y + samplers[thread_number].next();
 		Ray ray = scene->camera.generateRay(px, py);
 		//Colour col = viewNormals(ray);
 		//Colour col = albedo(ray);
 		//Colour col = direct(ray, samplers);
 		Colour throughput = Colour(1.0f, 1.0f, 1.0f);
-		Colour col = pathTrace(ray, throughput, 0, samplers);
+		Colour col = pathTrace(ray, throughput, 0, &samplers[thread_number]);
 		film->splat(px, py, col);
 	}
-	void renderTile(int tile_size_horizontal, int tile_size_vertical, std::atomic<int>& tile_index) {
+	void renderTile(const int tile_size_horizontal, const int tile_size_vertical, std::atomic<int>& tile_index, const int thread_number) {
 		int horizontal_tiles = film->width / tile_size_horizontal + (film->width % tile_size_horizontal != 0);
 		int vertical_tiles = film->height / tile_size_vertical + (film->height % tile_size_vertical != 0);
 		int current_index = tile_index++;
@@ -149,7 +147,7 @@ public:
 			for (int y = tile_height * tile_size_vertical; y < (tile_height + 1) * tile_size_vertical && y < film->height; y++) {
 				for (int x = tile_width * tile_size_horizontal; x < (tile_width + 1) * tile_size_horizontal && x < film->width; x++) {
 					for (int i = 0; i < spp; i++) {
-						renderPixel(x, y);
+						renderPixel(x, y, thread_number);
 					}
 				}
 			}
@@ -158,16 +156,16 @@ public:
 	}
 	void render()
 	{
-		film->SPP = 4;
+		film->SPP = 1;
 		// Multi Threaded
-		int thread_number = 11;
+		int thread_number = numProcs;
 		int tile_size_horizontal = 20;  // Number of pixels per tile side
 		int tile_size_vertical = 20;
 		std::atomic<int> tile_index = 0;
 		std::vector<std::thread> threads{};
 		threads.reserve(thread_number);
 		for (int t = 0; t < thread_number; t++) {
-			threads.emplace_back(&RayTracer::renderTile, this, tile_size_horizontal, tile_size_vertical, std::ref(tile_index));
+			threads.emplace_back(&RayTracer::renderTile, this, tile_size_horizontal, tile_size_vertical, std::ref(tile_index), t);
 		}
 		for (int t = 0; t < thread_number; t++) {
 			threads[t].join();

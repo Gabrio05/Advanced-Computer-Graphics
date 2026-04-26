@@ -140,7 +140,7 @@ class BoxFilter : public ImageFilter
 public:
 	float filter(const float x, const float y) const
 	{
-		if (fabsf(x) < 0.5f && fabs(y) < 0.5f)
+		if (x >= -0.5f && x < 0.5f && y >= -0.5f && y < 0.5f)
 		{
 			return 1.0f;
 		}
@@ -172,16 +172,18 @@ public:
 	int height = 0;
 	int SPP = 0;
 	ImageFilter* filter = nullptr;
-	float pre_calculated_full_filter_weight = 0;
+	//float pre_calculated_full_filter_weight = 0;
 	void splat(const float x, const float y, const Colour& L) {
-		float full_weight = pre_calculated_full_filter_weight;
+		// Can't actually pre-calculate for non-box filter
+		//float full_weight = pre_calculated_full_filter_weight;
+		float full_weight = calculateFilterWeight(x, y);
 		int size = filter->size();
 		int px = static_cast<int>(x);
 		int py = static_cast<int>(y);
 		bool is_on_edge = px < size || px + size >= width || py < size || py + size >= height;
-		if (is_on_edge) {
-			full_weight = calculateFilterWeight(px, py);
-		}
+		//if (is_on_edge) {
+		//	full_weight = calculateFilterWeight(px, py);
+		//}
 		for (int i = -size; i <= size; i++) {
 			for (int j = -size; j <= size; j++) {
 				if (!is_on_edge || px + i >= 0 && px + i < width && py + j >= 0 && py + j < height) {
@@ -198,7 +200,7 @@ public:
 		g = std::max(std::min(powf(pixel_colour.g / (float)SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
 		b = std::max(std::min(powf(pixel_colour.b / (float)SPP * powf(2.0, exposure), 1.0 / 2.2), 1.0f), 0.0f) * 255;
 	}
-	float calculateFilterWeight(int x, int y) {
+	float calculateFilterWeight(float x, float y) {
 		float weight = 0.0f;
 		int size = filter->size();
 		for (int i = -size; i <= size; i++) {
@@ -218,7 +220,7 @@ public:
 		film = new Colour[width * height];
 		clear();
 		filter = _filter;
-		pre_calculated_full_filter_weight = calculateFilterWeight(filter->size(), filter->size());
+		//pre_calculated_full_filter_weight = calculateFilterWeight(filter->size(), filter->size());
 	}
 	void clear()
 	{

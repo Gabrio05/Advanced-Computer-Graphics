@@ -130,12 +130,12 @@ public:
 		float r = sampler->next();
 		for (Light* light : lights) {
 			r -= light->totalIntegratedPower() / total_power;
-			if (r < 0) {
+			if (r <= 0) {
 				pmf = light->totalIntegratedPower() / total_power;
 				return light;
 			}
 		}
-		return nullptr;
+		return lights[lights.size() - 1];
 	}
 	// Do not modify any code below this line
 	void init(std::vector<Triangle> meshTriangles, std::vector<BSDF*> meshMaterials, Light* _background)

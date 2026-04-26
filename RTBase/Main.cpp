@@ -1,5 +1,3 @@
-
-
 #include "GEMLoader.h"
 #include "Renderer.h"
 #include "SceneLoader.h"
@@ -10,9 +8,32 @@
 int main(int argc, char *argv[])
 {	
 	// Initialize default parameters
-	//std::string sceneName = "../MoreScenes/kitchen";
-	std::string sceneName = "../cornell-box";
-	//std::string sceneName = "../MoreScenes/bathroom";
+	std::string sceneName;
+	sceneName = "../cornell-box";
+	//sceneName = "../MaterialsScene";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/bathroom";  // WARNING ARTEFACTS ON WALLS
+	//sceneName = "../MoreScenes/bathroom2";  // WARNING NO LIGHT FROM WINDOW ON MIRROR
+	//sceneName = "../MoreScenes/bedroom";
+	//sceneName = "../MoreScenes/car2";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/classroom";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/coffee";  // INFO POTENTIAL PROBLEM BLACK SQUARE BELOW
+	//sceneName = "../MoreScenes/dining-room";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/glass-of-water";  // INFO NO WATER REFLECTION
+	//sceneName = "../MoreScenes/house";
+	//sceneName = "../MoreScenes/kitchen";
+	//sceneName = "../MoreScenes/living-room";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/living-room2";  // ERROR BLACK SCREEN
+	//sceneName = "../MoreScenes/living-room3";  // ERROR BLACK SCREEN
+	//sceneName = "../MoreScenes/materialball";  // ERROR BLACK SCREEN (86 secs render)
+	//sceneName = "../MoreScenes/Sibenik";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/Sponza";  // ERROR BLACK SCREEN
+	//sceneName = "../MoreScenes/staircase";
+	//sceneName = "../MoreScenes/staircase2";
+	//sceneName = "../MoreScenes/teapot-full";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/Terrain";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/veach-bidir";
+	//sceneName = "../MoreScenes/veach-mis";
+	
 	std::string filename = "GI.hdr";
 	int SPP = 8192;
 
