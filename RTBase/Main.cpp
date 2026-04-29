@@ -9,12 +9,12 @@ int main(int argc, char *argv[])
 {	
 	// Initialize default parameters
 	std::string sceneName;
-	sceneName = "../cornell-box";
-	//sceneName = "../MaterialsScene";  // ERROR FREEZING
+	//sceneName = "../cornell-box";
+	//sceneName = "../MaterialsScene";  // WARNING OVERSATURED WHITE
 	//sceneName = "../MoreScenes/bathroom";  // WARNING ARTEFACTS ON WALLS
 	//sceneName = "../MoreScenes/bathroom2";  // WARNING NO LIGHT FROM WINDOW ON MIRROR
 	//sceneName = "../MoreScenes/bedroom";
-	//sceneName = "../MoreScenes/car2";  // ERROR FREEZING
+	sceneName = "../MoreScenes/car2";  // ERROR FREEZING
 	//sceneName = "../MoreScenes/classroom";  // ERROR FREEZING
 	//sceneName = "../MoreScenes/coffee";  // INFO POTENTIAL PROBLEM BLACK SQUARE BELOW
 	//sceneName = "../MoreScenes/dining-room";  // ERROR FREEZING

@@ -153,14 +153,25 @@ public:
 };
 
 class GaussianFilter : public ImageFilter {
-	float radius = 1.0f;
 	float filter(const float x, const float y) const {
 		float dist_squared = x * x + y * y;
 		float a = 0.5f;
-		return pow(M_E, -a * dist_squared); // -pow(M_E, -a * radius);
+		return pow(M_E, -a * dist_squared) / 2.5065; // -pow(M_E, -a * radius);
 	}
 	int size() const {
 		return 4;
+	}
+};
+
+class BigGaussianFilter : public ImageFilter {
+	// Also known as the "Where are my glasses?" filter
+	float filter(const float x, const float y) const {
+		float dist_squared = x * x + y * y;
+		float a = 0.1f;
+		return pow(M_E, -a * dist_squared) / 5.6049; // -pow(M_E, -a * radius);
+	}
+	int size() const {
+		return 8;
 	}
 };
 
@@ -188,7 +199,7 @@ public:
 			for (int j = -size; j <= size; j++) {
 				if (!is_on_edge || px + i >= 0 && px + i < width && py + j >= 0 && py + j < height) {
 					int index = (py + j) * width + px + i;
-					film[index] = film[index] + L * filter->filter(i + x - px - 0.5f, j + y - py - 0.5f);
+					film[index] = film[index] + L * filter->filter(i + x - px - 0.5f, j + y - py - 0.5f) / full_weight;
 				}
 			}
 		}

@@ -131,15 +131,49 @@ class EnvironmentMap : public Light
 {
 public:
 	Texture* env;
+	std::vector<float> row_cdf{};
+	std::vector<float> individual_row_total_luminance{};
+	float overall_luminance = 0.0f;
 	EnvironmentMap(Texture* _env)
 	{
 		env = _env;
+		row_cdf.reserve(env->height);
+		float total_luminance = 0.0f;
+		for (int y = 0; y < env->height; y++) {
+			float st = sinf(((float)y / (float)env->height) * M_PI);
+			const float old_total_luminance = total_luminance;
+			for (int x = 0; x < env->width; x++) {
+				total_luminance += env->texels[y * env->width + x].Lum() * st;
+			}
+			row_cdf.emplace_back(total_luminance);
+			individual_row_total_luminance.emplace_back(total_luminance - old_total_luminance);
+		}
+		for (int y = 0; y < env->height; y++) {
+			row_cdf.at(y) /= total_luminance;
+		}
+		overall_luminance = total_luminance;
 	}
 	Vec3 sample(const ShadingData& shadingData, Sampler* sampler, Colour& reflectedColour, float& pdf)
 	{
-		// Assignment: Update this code to importance sampling lighting based on luminance of each pixel
-		Vec3 wi = SamplingDistributions::uniformSampleSphere(sampler->next(), sampler->next());
-		pdf = SamplingDistributions::uniformSpherePDF(wi);
+		auto it = std::lower_bound(row_cdf.begin(), row_cdf.end(), sampler->next());
+		int height = it - row_cdf.begin();
+		int width = 0;
+		float st = sinf(((float)height / (float)env->height) * M_PI);
+		float x_sample = sampler->next() * individual_row_total_luminance[height];
+		for (int x = 0; x < env->width; x++) {
+			x_sample -= env->texels[height * env->width + x].Lum() * st;
+			if (x_sample < 0) {
+				width = x;
+				break;
+			}
+		}
+		float theta = (float)height / (float)env->height * M_PI;
+		float phi = 2 * M_PI * (float)width / (float)env->width;
+		Vec3 wi = Vec3(cosf(phi) * sinf(theta), cosf(theta), sinf(phi) * sinf(theta));
+		//wi = SamplingDistributions::uniformSampleSphere(sampler->next(), sampler->next());
+		//pdf = SamplingDistributions::uniformSpherePDF(wi);
+		pdf = 1.0f * (env->width * env->height) / (2 * M_PI * M_PI * sinf(theta));
+		//pdf = env->texels[height * env->width + width].Lum() * (env->width * env->height) / (overall_luminance * 2 * M_PI * M_PI);
 		reflectedColour = evaluate(wi);
 		return wi;
 	}
@@ -153,8 +187,9 @@ public:
 	}
 	float PDF(const ShadingData& shadingData, const Vec3& wi)
 	{
-		// Assignment: Update this code to return the correct PDF of luminance weighted importance sampling
-		return SamplingDistributions::uniformSpherePDF(wi);
+		//return SamplingDistributions::uniformSpherePDF(wi);
+		return 1.0f * (env->width * env->height) / (2 * M_PI * M_PI * sinf(acosf(wi.y)));
+		//return evaluate(wi).Lum() * (env->width * env->height) / (overall_luminance * 2 * M_PI * M_PI);
 	}
 	bool isArea()
 	{
@@ -166,17 +201,18 @@ public:
 	}
 	float totalIntegratedPower()
 	{
-		float total = 0;
-		for (int i = 0; i < env->height; i++)
-		{
-			float st = sinf(((float)i / (float)env->height) * M_PI);
-			for (int n = 0; n < env->width; n++)
-			{
-				total += (env->texels[(i * env->width) + n].Lum() * st);
-			}
-		}
-		total = total / (float)(env->width * env->height);
-		return total * 4.0f * M_PI;
+		return overall_luminance * 4.0f * M_PI;
+		//float total = 0;
+		//for (int i = 0; i < env->height; i++)
+		//{
+		//	float st = sinf(((float)i / (float)env->height) * M_PI);
+		//	for (int n = 0; n < env->width; n++)
+		//	{
+		//		total += (env->texels[(i * env->width) + n].Lum() * st);
+		//	}
+		//}
+		//total = total / (float)(env->width * env->height);
+		//return total * 4.0f * M_PI;
 	}
 	Vec3 samplePositionFromLight(Sampler* sampler, float& pdf)
 	{

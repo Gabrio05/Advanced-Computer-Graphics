@@ -17,7 +17,7 @@ public:
 	std::uniform_real_distribution<float> dist;
 	// 0.999999 to reduce noise on BoxFilter (removes floating point error which gives the sample to the next pixel instead)
 	// (1.0f can't actually be generated anyway, but later operations with the generated result can)
-	MTRandom(unsigned int seed = 1) : dist(0.0f, 0.999999f)
+	MTRandom(unsigned int seed = 1) : dist(0.0f, 1.0f)
 	{
 		generator.seed(seed);
 	}

@@ -258,36 +258,41 @@ public:
 		}
 
 		Vec3 side_lengths = bounds.max - bounds.min;
-		AABB left = bounds;
-		AABB right = bounds;
 		int axis = 0;
 		if (side_lengths.x > side_lengths.y && side_lengths.x > side_lengths.z) {
 			float new_x = bounds.max.x - side_lengths.x / 2;
-			left.max.x = new_x;
-			right.min.x = new_x;
 			axis = 0;
 		} else if (side_lengths.y > side_lengths.z) {
 			float new_y = bounds.max.y - side_lengths.y / 2;
-			left.max.y = new_y;
-			right.min.y = new_y;
 			axis = 1;
 		} else {
 			float new_z = bounds.max.z - side_lengths.z / 2;
-			left.max.z = new_z;
-			right.min.z = new_z;
 			axis = 2;
 		}
 		std::sort(inputTriangles.begin(), inputTriangles.end(), [axis](const Triangle& t, const Triangle& t2) { return t.centre().coords[axis] < t2.centre().coords[axis]; });
+		
+		// Median
 		int half = inputTriangles.size() / 2;
+		// SAH
+		//float best_cost = INFINITY;
+		//int best_split = half;
+		//const float left_min = bounds.min.coords[axis];
+		//float left_max = bounds.min.coords[axis];
+		//float right_min = bounds.min.coords[axis];
+		//const float right_max = bounds.max.coords[axis];
+		//int current_left_triangle 
+		//for (int i = 0; i < inputTriangles.size(); i++) {
+		//	
+		//}
+
 		std::span<Triangle> first_half = inputTriangles.subspan(0, half);
 		std::span<Triangle> second_half = inputTriangles.subspan(half, inputTriangles.size() - half);
-
 		l = std::make_unique<BVHNode>();
 		r = std::make_unique<BVHNode>();
 		l->build(first_half, original_offset);
 		r->build(second_half, original_offset + half);
 	}
-	void traverse(const Ray& ray, const std::vector<Triangle>& triangles, IntersectionData& intersection)
+	void traverse(const Ray& ray, const std::vector<Triangle>& triangles, IntersectionData& intersection, const bool should_terminate_early = false, const float maxT = 0.0f)
 	{
 		if (bounds.rayAABB(ray)) {
 			if (triangles_number > 0) {
@@ -302,6 +307,9 @@ public:
 							intersection.alpha = u;
 							intersection.beta = v;
 							intersection.gamma = 1.0f - (u + v);
+							if (should_terminate_early && t < maxT) {
+								return;
+							}
 						}
 					}
 				}
@@ -315,15 +323,15 @@ public:
 			}
 		}
 	}
-	IntersectionData traverse(const Ray& ray, const std::vector<Triangle>& triangles)
+	IntersectionData traverse(const Ray& ray, const std::vector<Triangle>& triangles, const bool should_terminate_early = false, const float maxT = 0.0f)
 	{
 		IntersectionData intersection;
 		intersection.t = FLT_MAX;
-		traverse(ray, triangles, intersection);
+		traverse(ray, triangles, intersection, should_terminate_early, maxT);
 		return intersection;
 	}
 	bool traverseVisible(const Ray& ray, const std::vector<Triangle>& triangles, const float maxT)
 	{
-		return traverse(ray, triangles).t > maxT;
+		return traverse(ray, triangles, true, maxT).t > maxT;
 	}
 };

@@ -53,6 +53,16 @@ public:
 				return Colour(geo, geo, geo) * colour * colour2 / (pmf * pdf);
 			}
 		}
+		else {
+			float pdf;
+			Colour colour;
+			Vec3 light_direction = light->sample(shadingData, sampler, colour, pdf);
+			float geo = std::max(Dot(light_direction, shadingData.sNormal), 0.0f);
+			if (geo > 0 && scene->visible(shadingData.x, shadingData.x + light_direction * 100000000)) {
+				Colour colour2 = shadingData.bsdf->evaluate(shadingData, light_direction);
+				return Colour(geo, geo, geo) * colour * colour2 / (pmf * pdf);
+			}
+		}
 		return Colour(0.0f, 0.0f, 0.0f);
 	}
 	Colour pathTrace(Ray& r, Colour& pathThroughput, int depth, Sampler* sampler)
@@ -156,7 +166,7 @@ public:
 	}
 	void render()
 	{
-		film->SPP = 1;
+		film->SPP = 8;
 		// Multi Threaded
 		int thread_number = numProcs;
 		int tile_size_horizontal = 20;  // Number of pixels per tile side
