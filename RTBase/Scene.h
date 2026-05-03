@@ -72,6 +72,7 @@ public:
 	std::vector<Triangle> triangles;
 	std::vector<BSDF*> materials;
 	std::vector<Light*> lights;
+	std::vector<int> light_indices{};
 	Light* background = NULL;
 	std::unique_ptr<BVHNode> bvh = nullptr;
 	Camera camera;
@@ -92,6 +93,7 @@ public:
 				light->triangle = &triangles[i];
 				light->emission = materials[triangles[i].materialIndex]->emission;
 				lights.push_back(light);
+				light_indices.push_back(i);
 			}
 		}
 	}
@@ -136,6 +138,13 @@ public:
 			}
 		}
 		return lights[lights.size() - 1];
+	}
+	float pmfSampleLight(Light* light) {
+		float total_power = 0.0f;
+		for (Light* light : lights) {
+			total_power += light->totalIntegratedPower();
+		}
+		return light->totalIntegratedPower() / total_power;
 	}
 	// Do not modify any code below this line
 	void init(std::vector<Triangle> meshTriangles, std::vector<BSDF*> meshMaterials, Light* _background)

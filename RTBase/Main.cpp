@@ -7,30 +7,29 @@
 
 int main(int argc, char *argv[])
 {	
-	// Initialize default parameters
 	std::string sceneName;
-	//sceneName = "../cornell-box";
-	//sceneName = "../MaterialsScene";  // WARNING OVERSATURED WHITE
+	sceneName = "../cornell-box";
+	//sceneName = "../MaterialsScene";
 	//sceneName = "../MoreScenes/bathroom";  // WARNING ARTEFACTS ON WALLS
-	//sceneName = "../MoreScenes/bathroom2";  // WARNING NO LIGHT FROM WINDOW ON MIRROR
+	//sceneName = "../MoreScenes/bathroom2";
 	//sceneName = "../MoreScenes/bedroom";
-	sceneName = "../MoreScenes/car2";  // ERROR FREEZING
-	//sceneName = "../MoreScenes/classroom";  // ERROR FREEZING
-	//sceneName = "../MoreScenes/coffee";  // INFO POTENTIAL PROBLEM BLACK SQUARE BELOW
-	//sceneName = "../MoreScenes/dining-room";  // ERROR FREEZING
-	//sceneName = "../MoreScenes/glass-of-water";  // INFO NO WATER REFLECTION
+	//sceneName = "../MoreScenes/car2";
+	//sceneName = "../MoreScenes/classroom";
+	//sceneName = "../MoreScenes/coffee";  // INFO BLACK SQUARE BELOW
+	//sceneName = "../MoreScenes/dining-room";  // INFO VERY NOISY/DARK
+	//sceneName = "../MoreScenes/glass-of-water";  // INFO WATER DARK (WRONG OR NEED MORE SAMPLES?)
 	//sceneName = "../MoreScenes/house";
 	//sceneName = "../MoreScenes/kitchen";
-	//sceneName = "../MoreScenes/living-room";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/living-room";  // WARNING ARTEFACTS ON WALLS
 	//sceneName = "../MoreScenes/living-room2";  // ERROR BLACK SCREEN
 	//sceneName = "../MoreScenes/living-room3";  // ERROR BLACK SCREEN
-	//sceneName = "../MoreScenes/materialball";  // ERROR BLACK SCREEN (86 secs render)
-	//sceneName = "../MoreScenes/Sibenik";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/materialball";
+	//sceneName = "../MoreScenes/Sibenik";  // WARNING ARTEFACTS ON WALLS
 	//sceneName = "../MoreScenes/Sponza";  // ERROR BLACK SCREEN
 	//sceneName = "../MoreScenes/staircase";
-	//sceneName = "../MoreScenes/staircase2";
-	//sceneName = "../MoreScenes/teapot-full";  // ERROR FREEZING
-	//sceneName = "../MoreScenes/Terrain";  // ERROR FREEZING
+	//sceneName = "../MoreScenes/staircase2";  // INFO ARTEFACTS ON WALLS?
+	//sceneName = "../MoreScenes/teapot-full";  // WARNING BLACK TEAPOT
+	//sceneName = "../MoreScenes/Terrain";  // INFO VERY NOISY
 	//sceneName = "../MoreScenes/veach-bidir";
 	//sceneName = "../MoreScenes/veach-mis";
 	

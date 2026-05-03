@@ -67,9 +67,8 @@ public:
 	}
 	Vec3 sampleDirectionFromLight(Sampler* sampler, float& pdf)
 	{
-		// Add code to sample a direction from the light
-		Vec3 wi = Vec3(0, 0, 1);
-		pdf = 1.0f;
+		Vec3 wi = SamplingDistributions::cosineSampleHemisphere(sampler->next(), sampler->next());
+		pdf = SamplingDistributions::cosineHemispherePDF(wi);
 		Frame frame;
 		frame.fromVector(triangle->gNormal());
 		return frame.toWorld(wi);
@@ -134,16 +133,19 @@ public:
 	std::vector<float> row_cdf{};
 	std::vector<float> individual_row_total_luminance{};
 	float overall_luminance = 0.0f;
+	float real_overall_luminance = 0.0f;
 	EnvironmentMap(Texture* _env)
 	{
 		env = _env;
 		row_cdf.reserve(env->height);
 		float total_luminance = 0.0f;
+		float real_total_luminance = 0.0f;
 		for (int y = 0; y < env->height; y++) {
 			float st = sinf(((float)y / (float)env->height) * M_PI);
 			const float old_total_luminance = total_luminance;
 			for (int x = 0; x < env->width; x++) {
 				total_luminance += env->texels[y * env->width + x].Lum() * st;
+				real_total_luminance += env->texels[y * env->width + x].Lum();
 			}
 			row_cdf.emplace_back(total_luminance);
 			individual_row_total_luminance.emplace_back(total_luminance - old_total_luminance);
@@ -152,6 +154,7 @@ public:
 			row_cdf.at(y) /= total_luminance;
 		}
 		overall_luminance = total_luminance;
+		real_overall_luminance = real_total_luminance;
 	}
 	Vec3 sample(const ShadingData& shadingData, Sampler* sampler, Colour& reflectedColour, float& pdf)
 	{
@@ -173,7 +176,7 @@ public:
 		//wi = SamplingDistributions::uniformSampleSphere(sampler->next(), sampler->next());
 		//pdf = SamplingDistributions::uniformSpherePDF(wi);
 		pdf = 1.0f * (env->width * env->height) / (2 * M_PI * M_PI * sinf(theta));
-		//pdf = env->texels[height * env->width + width].Lum() * (env->width * env->height) / (overall_luminance * 2 * M_PI * M_PI);
+		//pdf = env->texels[height * env->width + width].Lum() * (env->width * env->height) / (real_overall_luminance * 2 * M_PI * M_PI);
 		reflectedColour = evaluate(wi);
 		return wi;
 	}
@@ -189,7 +192,7 @@ public:
 	{
 		//return SamplingDistributions::uniformSpherePDF(wi);
 		return 1.0f * (env->width * env->height) / (2 * M_PI * M_PI * sinf(acosf(wi.y)));
-		//return evaluate(wi).Lum() * (env->width * env->height) / (overall_luminance * 2 * M_PI * M_PI);
+		//return evaluate(wi).Lum() * (env->width * env->height) / (real_overall_luminance * 2 * M_PI * M_PI);
 	}
 	bool isArea()
 	{
@@ -214,6 +217,7 @@ public:
 		//total = total / (float)(env->width * env->height);
 		//return total * 4.0f * M_PI;
 	}
+	// Oops, didn't see these last 2 functions, I think I manually implemented them directly
 	Vec3 samplePositionFromLight(Sampler* sampler, float& pdf)
 	{
 		// Samples a point on the bounding sphere of the scene. Feel free to improve this.
@@ -229,5 +233,45 @@ public:
 		Vec3 wi = SamplingDistributions::uniformSampleSphere(sampler->next(), sampler->next());
 		pdf = SamplingDistributions::uniformSpherePDF(wi);
 		return wi;
+	}
+};
+
+class VirtualPointLight : public Light {
+public:
+	Vec3 position{};
+	Vec3 normal_vector{};
+	Colour emission{};
+	Vec3 sample(const ShadingData& shadingData, Sampler* sampler, Colour& emittedColour, float& pdf) {
+		emittedColour = emission;
+		pdf = 1.0f;
+		return position;
+	}
+	Colour evaluate(const Vec3& wi) {
+		if (Dot(wi, normal_vector) < 0) {
+			return emission;
+		}
+		return Colour(0.0f, 0.0f, 0.0f);
+	}
+	float PDF(const ShadingData& shadingData, const Vec3& wi) {
+		return 0.0f;
+	}
+	bool isArea() {
+		return true;
+	}
+	Vec3 normal(const ShadingData& shadingData, const Vec3& wi) {
+		return normal_vector;
+	}
+	float totalIntegratedPower() {
+		return emission.Lum();
+	}
+	Vec3 samplePositionFromLight(Sampler* sampler, float& pdf) {
+		return position;
+	}
+	Vec3 sampleDirectionFromLight(Sampler* sampler, float& pdf) {
+		Vec3 wi = SamplingDistributions::cosineSampleHemisphere(sampler->next(), sampler->next());
+		pdf = SamplingDistributions::cosineHemispherePDF(wi);
+		Frame frame;
+		frame.fromVector(normal_vector);
+		return frame.toWorld(wi);
 	}
 };
