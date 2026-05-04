@@ -8,7 +8,7 @@
 int main(int argc, char *argv[])
 {	
 	std::string sceneName;
-	//sceneName = "../cornell-box";
+	sceneName = "../cornell-box";
 	//sceneName = "../MaterialsScene";
 	//sceneName = "../MoreScenes/bathroom";  // WARNING ARTEFACTS ON WALLS
 	//sceneName = "../MoreScenes/bathroom2";
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	//sceneName = "../MoreScenes/staircase2";  // INFO ARTEFACTS ON WALLS?
 	//sceneName = "../MoreScenes/teapot-full";  // WARNING BLACK TEAPOT
 	//sceneName = "../MoreScenes/Terrain";  // INFO VERY NOISY
-	sceneName = "../MoreScenes/veach-bidir";
+	//sceneName = "../MoreScenes/veach-bidir";
 	//sceneName = "../MoreScenes/veach-mis";
 	
 	std::string filename = "GI.hdr";

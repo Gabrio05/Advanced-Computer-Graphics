@@ -75,10 +75,10 @@ public:
 	Denoiser* openImageDenoiser;
 #endif
 	int numProcs;
-	std::string current_render = "direct";
+	std::string current_render = "color";
 	static constexpr bool is_using_instant_radiosity = false;  // Render must be set to direct if true
 	static constexpr int lights_to_sample_for_IR = 0;  // 0 for all
-	static constexpr int lights_to_make = 5;
+	static constexpr int lights_to_make = 5;  // The number of paths
 	int original_light_vector_size = 0;
 	void init(Scene* _scene, GamesEngineeringBase::Window* _canvas)
 	{
@@ -384,37 +384,38 @@ public:
 	void render()
 	{
 		film->SPP = 1;
-		// Multi Threaded
+		//// Multi Threaded
 		// No multi-threaded light tracing without locks! Don't you dare!
-		//if (is_using_instant_radiosity) {
-		//	original_light_vector_size = scene->lights.size();
-		//	for (int i = 0; i < lights_to_make; i++) {
-		//		lightTrace(&samplers[0]);
-		//	}
-		//}
-		//int thread_number = numProcs;
-		//int tile_size_horizontal = 20;  // Number of pixels per tile side
-		//int tile_size_vertical = 20;
-		//std::atomic<int> tile_index = 0;
-		//std::vector<std::thread> threads{};
-		//threads.reserve(thread_number);
-		//for (int t = 0; t < thread_number; t++) {
-		//	threads.emplace_back(&RayTracer::renderTile, this, tile_size_horizontal, tile_size_vertical, std::ref(tile_index), t);
-		//}
-		//for (int t = 0; t < thread_number; t++) {
-		//	threads[t].join();
-		//}
-
-		// Single Threaded
-		for (int y = 0; y < film->height; y++) {
-			for (int x = 0; x < film->width; x++) {
-				for (int i = 0; i < getSPP(); i++) {
-					//renderPixel(x, y);
-					lightTrace(&samplers[0]);
-				}
+		if (is_using_instant_radiosity) {
+			original_light_vector_size = scene->lights.size();
+			for (int i = 0; i < lights_to_make; i++) {
+				lightTrace(&samplers[0]);
 			}
 		}
-		// Continuous Rendering Single Threaded
+		int thread_number = numProcs;
+		int tile_size_horizontal = 20;  // Number of pixels per tile side
+		int tile_size_vertical = 20;
+		std::atomic<int> tile_index = 0;
+		std::vector<std::thread> threads{};
+		threads.reserve(thread_number);
+		for (int t = 0; t < thread_number; t++) {
+			threads.emplace_back(&RayTracer::renderTile, this, tile_size_horizontal, tile_size_vertical, std::ref(tile_index), t);
+		}
+		for (int t = 0; t < thread_number; t++) {
+			threads[t].join();
+		}
+
+		//// Single Threaded
+		//for (int y = 0; y < film->height; y++) {
+		//	for (int x = 0; x < film->width; x++) {
+		//		for (int i = 0; i < getSPP(); i++) {
+		//			//renderPixel(x, y);
+		//			lightTrace(&samplers[0]);
+		//		}
+		//	}
+		//}
+		
+		//// Continuous Rendering Single Threaded
 		//for (int i = 0; i < 1; i++) {
 		//	film->incrementSPP();
 		//	for (int y = 0; y < film->height; y++) {
