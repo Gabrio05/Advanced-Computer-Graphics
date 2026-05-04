@@ -1,40 +1,15 @@
-# RTBase
+# How to Compile and Run with Different Options
 
-## Overview
+The only two files to touch are main.cpp and Renderer.h (you'll need to recompile each time).
 
-This project provides a foundational ray tracing renderer for students studying Advanced Computer Graphics. The codebase is structured to facilitate learning by including sections where students need to complete missing implementations.
+The file main.cpp contains a list of all the scenes (and some comments on potential issues the scene has), simply uncomment the scene you want to run. You'll need to have them downloaded and in the root folder of this repository.
 
-## Project Structure
+You can modify a few things in Renderer.h:
 
-```
-Renderer/
-│── Core.h               # Core mathematical and utility functions
-│── Renderer.h           # Main ray tracing logic
-│── Sampling.h           # Monte Carlo sampling utilities
-│── Scene.h              # Scene representation and camera logic
-│── SceneLoader.h        # Loads scenes and configurations
-│── Lights.h             # Light source definitions
-│── Geometry.h           # Geometric structures and operations
-│── Imaging.h            # Image generation and storage
-│── Materials.h          # Materials and shading models
-│── GEMLoader.h          # External loader for scene assets
-│── GamesEngineeringBase.h  # Base utilities for integration
-```
+* The Renderer class has a string and three static members.
 
-## Scenes
+  * Change the string to: "direct" for only direct lighting, "albedo" to get an albedo map, "normal" to get a normal map, and "color" or anything else to get path tracing.
+  * Change the "is\_using\_instant\_radiosity" variable to run using instant radiosity, the above string must be set to "direct". You can also change how many lights are sampled (0 samples all of them) and how many light paths are traced to generate VPLs.
+* By default, the code runs multi-threaded. If you want to run light tracing or just single-threaded, you'll need to comment out the multi-threaded code in "render()" and uncomment the single threaded code. You can also run a single threaded continuous rendering, which will make the image progressively better.
+* Uncomment the "#define DENOISE" to denoise the ray traced image. You'll need OpenImageDenoise installed and properly linked at compilation.
 
-Scenes can be found on the Moodle page. Please download them and place them in the working directory.
-
-## Tasks for Students
-
-Several functions and algorithms are left incomplete and require implementation. Look for comments such as:
-
-```cpp
-// Add code here
-```
-
-## Notes
-
-- Ensure your implementations are efficient and well-commented.
-- Test incremental changes using appropriate scenes.
-  

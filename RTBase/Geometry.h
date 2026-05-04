@@ -227,7 +227,7 @@ struct IntersectionData
 #define MAXNODE_TRIANGLES 8
 #define TRAVERSE_COST 1.0f
 #define TRIANGLE_COST 2.0f
-#define BUILD_BINS 32
+#define BUILD_BINS 256
 
 class BVHNode
 {
@@ -274,16 +274,34 @@ public:
 		// Median
 		int half = inputTriangles.size() / 2;
 		// SAH
-		//float best_cost = INFINITY;
-		//int best_split = half;
-		//const float left_min = bounds.min.coords[axis];
-		//float left_max = bounds.min.coords[axis];
-		//float right_min = bounds.min.coords[axis];
-		//const float right_max = bounds.max.coords[axis];
-		//int current_left_triangle 
-		//for (int i = 0; i < inputTriangles.size(); i++) {
-		//	
-		//}
+		int best_cost = INFINITY;
+		for (int i = 1; i < BUILD_BINS; i++) {
+			float current_cut = bounds.min.coords[axis] + side_lengths.coords[axis] / BUILD_BINS * i;
+			float left_max = current_cut;
+			float right_min = current_cut;
+			int in_left = 0;
+			for (int j = 0; j < inputTriangles.size(); j++) {
+				if (inputTriangles[j].centre().coords[axis] < current_cut) {
+					in_left++;
+					for (int m = 0; m < 3; m++) {
+						if (inputTriangles[j].vertices[0].p.coords[axis] > left_max) {
+							left_max = inputTriangles[j].vertices[0].p.coords[axis];
+						}
+					}
+				} else {
+					for (int m = 0; m < 3; m++) {
+						if (inputTriangles[j].vertices[0].p.coords[axis] < right_min) {
+							right_min = inputTriangles[j].vertices[0].p.coords[axis];
+						}
+					}
+				}
+			}
+			float cost = (left_max - bounds.min.coords[axis]) * in_left + (bounds.max.coords[axis] - right_min) * (inputTriangles.size() - in_left);
+			if (cost < best_cost) {
+				half = in_left;
+				best_cost = cost;
+			}
+		}
 
 		std::span<Triangle> first_half = inputTriangles.subspan(0, half);
 		std::span<Triangle> second_half = inputTriangles.subspan(half, inputTriangles.size() - half);
@@ -307,6 +325,7 @@ public:
 							intersection.alpha = u;
 							intersection.beta = v;
 							intersection.gamma = 1.0f - (u + v);
+							// Quit early
 							if (should_terminate_early && t < maxT) {
 								return;
 							}
